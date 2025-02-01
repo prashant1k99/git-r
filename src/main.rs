@@ -39,12 +39,17 @@ impl<R: Read> RateLimitedReader<R> {
 }
 
 impl<R: Read> Read for RateLimitedReader<R> {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        if self.remaining == 0 {
-            return Ok(0);
+    fn read(&mut self, mut buf: &mut [u8]) -> io::Result<usize> {
+        if buf.len() > self.remaining {
+            buf = &mut buf[..self.remaining + 1];
         }
-        let max_read = buf.len().min(self.remaining);
-        let bytes_read = self.inner.read(&mut buf[..max_read])?;
+        let bytes_read = self.inner.read(buf)?;
+        if bytes_read > self.remaining {
+            return Err(io::Error::new(
+                io::ErrorKind::FileTooLarge,
+                "too many bytes",
+            ));
+        }
         self.remaining -= bytes_read;
         Ok(bytes_read)
     }
@@ -105,7 +110,10 @@ fn main() -> anyhow::Result<()> {
                 Kind::Blob => {
                     let stdout = io::stdout();
                     let mut stdout = stdout.lock();
-                    io::copy(&mut z, &mut stdout).context("write .git/objects file into stdout")?;
+                    let n = io::copy(&mut z, &mut stdout)
+                        .context("write .git/objects file into stdout")?;
+
+                    ensure!(n == size as u64, ".git/objects file was not the expected size (expected: {size}, received: {n})");
                 }
             }
         }
