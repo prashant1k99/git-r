@@ -1,10 +1,10 @@
 use anyhow::{bail, ensure, Context};
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{Parser, Subcommand};
 use flate2::read::ZlibDecoder;
 use std::{
     ffi::CStr,
     fs,
-    io::{self, BufRead, BufReader},
+    io::{self, BufRead, BufReader, Read},
 };
 
 #[derive(Parser, Debug)]
@@ -12,13 +12,6 @@ use std::{
 struct Args {
     #[command(subcommand)]
     command: Command,
-}
-
-#[derive(Debug, Clone, ValueEnum)]
-enum FileType {
-    Blob,
-    Commit,
-    Tree,
 }
 
 #[derive(Debug, Subcommand)]
@@ -29,6 +22,32 @@ enum Command {
 
 enum Kind {
     Blob,
+}
+
+struct RateLimitedReader<R> {
+    inner: R,
+    remaining: usize,
+}
+
+impl<R: Read> RateLimitedReader<R> {
+    fn new(inner: R, limit: usize) -> Self {
+        Self {
+            inner,
+            remaining: limit,
+        }
+    }
+}
+
+impl<R: Read> Read for RateLimitedReader<R> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        if self.remaining == 0 {
+            return Ok(0);
+        }
+        let max_read = buf.len().min(self.remaining);
+        let bytes_read = self.inner.read(&mut buf[..max_read])?;
+        self.remaining -= bytes_read;
+        Ok(bytes_read)
+    }
 }
 
 fn main() -> anyhow::Result<()> {
@@ -80,6 +99,8 @@ fn main() -> anyhow::Result<()> {
                 .parse::<usize>()
                 .context(".git/objects file header has invalid size: {size}")?;
 
+            let z = RateLimitedReader::new(z, size);
+            let mut z = BufReader::new(z);
             match kind {
                 Kind::Blob => {
                     let stdout = io::stdout();
