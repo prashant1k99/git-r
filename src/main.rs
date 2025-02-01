@@ -4,7 +4,7 @@ use flate2::read::ZlibDecoder;
 use std::{
     ffi::CStr,
     fs,
-    io::{BufRead, BufReader, Read},
+    io::{self, BufRead, BufReader, Read, Stdout, Write},
 };
 
 #[derive(Parser, Debug)]
@@ -89,10 +89,13 @@ fn main() -> anyhow::Result<()> {
 
             ensure!(n == 0, ".git/objects file had {n} trailing bytes");
 
-            match String::from_utf8(buf) {
-                Ok(content) => println!("{}", content),
-                Err(e) => eprintln!("Error: Invalid UTF-8 sequence: {}", e),
-            }
+            // We need to handle all types, as it can be anything as well as UTF-8, images, etc..
+            let stdout = io::stdout();
+            let mut stdout = stdout.lock();
+
+            stdout
+                .write_all(&buf)
+                .context("write object contents to stdout")?;
         }
     }
 
