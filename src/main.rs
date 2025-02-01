@@ -27,6 +27,10 @@ enum Command {
     CatFile { object_hash: String },
 }
 
+enum Kind {
+    Blob,
+}
+
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
 
@@ -63,8 +67,13 @@ fn main() -> anyhow::Result<()> {
                 .to_str()
                 .context(".git/objects file header isn't valid UTFD-8")?;
 
-            let Some(size) = header.strip_prefix("blob ") else {
-                bail!(".git/objects file header did not start with 'blob ': '{header}'")
+            let Some((kind, size)) = header.split_once(" ") else {
+                bail!(".git/objects file header did not start with a known type: '{header}'")
+            };
+
+            let kind = match kind {
+                "blob" => Kind::Blob,
+                _ => bail!("we do not support printing of {kind}"),
             };
 
             let size = size
@@ -93,9 +102,13 @@ fn main() -> anyhow::Result<()> {
             let stdout = io::stdout();
             let mut stdout = stdout.lock();
 
-            stdout
-                .write_all(&buf)
-                .context("write object contents to stdout")?;
+            match kind {
+                Kind::Blob => {
+                    stdout
+                        .write_all(&buf)
+                        .context("write object contents to stdout")?;
+                }
+            }
         }
     }
 
