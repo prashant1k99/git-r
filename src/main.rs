@@ -4,7 +4,7 @@ use flate2::read::ZlibDecoder;
 use std::{
     ffi::CStr,
     fs,
-    io::{self, BufRead, BufReader, Read, Stdout, Write},
+    io::{self, BufRead, BufReader},
 };
 
 #[derive(Parser, Debug)]
@@ -80,33 +80,17 @@ fn main() -> anyhow::Result<()> {
                 .parse::<usize>()
                 .context(".git/objects file header has invalid size: {size}")?;
 
-            buf.clear();
-            buf.reserve_exact(size);
-
-            unsafe {
-                // It is safe as we are filling the space just below
-                buf.set_len(size);
-            }
-
-            z.read_exact(&mut buf[..])
-                .context(".git/objects file content did not match expactations")?;
-
-            // To confirm that nothing is remaining post this
-            let n = z
-                .read(&mut [0])
-                .context("validate EOF in .git/objects file")?;
-
-            ensure!(n == 0, ".git/objects file had {n} trailing bytes");
-
-            // We need to handle all types, as it can be anything as well as UTF-8, images, etc..
-            let stdout = io::stdout();
-            let mut stdout = stdout.lock();
-
             match kind {
                 Kind::Blob => {
-                    stdout
-                        .write_all(&buf)
-                        .context("write object contents to stdout")?;
+                    let stdout = io::stdout();
+                    let mut stdout = stdout.lock();
+                    let n = io::copy(&mut z, &mut stdout)
+                        .context("write .git/objects file into stdout")?;
+
+                    ensure!(
+                        n == size as u64,
+                        ".git/objects file exceeds expected size (expected: {size}, received: {n})"
+                    );
                 }
             }
         }
