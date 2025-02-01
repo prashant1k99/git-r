@@ -1,4 +1,4 @@
-use anyhow::{bail, Context};
+use anyhow::{bail, ensure, Context};
 use clap::{Parser, Subcommand, ValueEnum};
 use flate2::read::ZlibDecoder;
 use std::{
@@ -74,13 +74,20 @@ fn main() -> anyhow::Result<()> {
             buf.clear();
             buf.reserve_exact(size);
 
-            // It is safe as we are filling the space just below
             unsafe {
+                // It is safe as we are filling the space just below
                 buf.set_len(size);
             }
 
             z.read_exact(&mut buf[..])
                 .context(".git/objects file content did not match expactations")?;
+
+            // To confirm that nothing is remaining post this
+            let n = z
+                .read(&mut [0])
+                .context("validate EOF in .git/objects file")?;
+
+            ensure!(n == 0, ".git/objects file had {n} trailing bytes");
 
             match String::from_utf8(buf) {
                 Ok(content) => println!("{}", content),
