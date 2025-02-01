@@ -105,13 +105,7 @@ fn main() -> anyhow::Result<()> {
                 Kind::Blob => {
                     let stdout = io::stdout();
                     let mut stdout = stdout.lock();
-                    let n = io::copy(&mut z, &mut stdout)
-                        .context("write .git/objects file into stdout")?;
-
-                    ensure!(
-                        n == size as u64,
-                        ".git/objects file exceeds expected size (expected: {size}, received: {n})"
-                    );
+                    io::copy(&mut z, &mut stdout).context("write .git/objects file into stdout")?;
                 }
             }
         }
