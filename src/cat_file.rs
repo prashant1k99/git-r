@@ -42,6 +42,7 @@ impl<R: Read> Read for RateLimitedReader<R> {
 }
 pub fn cat_file(object_hash: String) -> Result<()> {
     // TODO: Need to handle short version of hash as well
+
     let f = fs::File::open(format!(
         ".git/objects/{}/{}",
         &object_hash[..2],
@@ -62,7 +63,7 @@ pub fn cat_file(object_hash: String) -> Result<()> {
 
     let header = header
         .to_str()
-        .context(".git/objects file header isn't valid UTFD-8")?;
+        .context(".git/objects file header isn't valid UTF-8")?;
 
     let Some((kind, size)) = header.split_once(" ") else {
         bail!(".git/objects file header did not start with a known type: '{header}'")

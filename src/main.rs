@@ -1,7 +1,9 @@
-use clap::{Parser, Subcommand};
-use std::fs;
-
 mod cat_file;
+mod init;
+
+use cat_file::cat_file;
+use clap::{Parser, Subcommand};
+use init::init;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -21,15 +23,8 @@ fn main() -> anyhow::Result<()> {
     let args = Args::parse();
 
     match args.command {
-        Command::Init => {
-            fs::create_dir(".git-r").unwrap();
-            fs::create_dir(".git-r/objects").unwrap();
-            fs::create_dir(".git-r/refs").unwrap();
-            fs::write(".git-r/HEAD", "ref: refs/heads/main\n").unwrap();
-            println!("Initialized git-r directory");
-            Ok(())
-        }
-        Command::CatFile { object_hash } => cat_file::cat_file(object_hash),
+        Command::Init => init(),
+        Command::CatFile { object_hash } => cat_file(object_hash),
         Command::HashObject { file_name } => Ok(()),
     }
 }
