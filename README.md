@@ -5,6 +5,8 @@
 ## Features
 
 - [x] Initialize a new repository (`init`)
+- [x] `cat-file` for the stashed, commited, files
+- [x] `ls-tree` for viewing the tree of commit
 - [ ] Clone an existing repository (`clone`)
 - [ ] Stage and commit changes (`add`, `commit`)
 - [ ] Push changes to a remote repository (`push`)
