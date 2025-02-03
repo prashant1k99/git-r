@@ -27,6 +27,12 @@ enum Command {
 
         file_name: PathBuf,
     },
+    LsTree {
+        #[arg(long)]
+        name_only: bool,
+
+        tree_sha: String,
+    },
 }
 
 fn main() -> anyhow::Result<()> {
@@ -39,5 +45,9 @@ fn main() -> anyhow::Result<()> {
             pretty_print,
         } => commands::cat_file::invoke(&object_hash, pretty_print),
         Command::HashObject { file_name, write } => commands::hash_object::invoke(file_name, write),
+        Command::LsTree {
+            tree_sha,
+            name_only,
+        } => commands::ls_tree::invoke(&tree_sha, name_only),
     }
 }

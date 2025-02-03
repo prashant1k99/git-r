@@ -58,16 +58,15 @@ impl Object<()> {
             "blob" => Kind::Blob,
             "tree" => Kind::Tree,
             "commit" => Kind::Commit,
-            _ => anyhow::bail!("what even is a '{kind}'"),
+            _ => anyhow::bail!("Invalid Kind: '{kind}'"),
         };
 
         let size = size
             .parse::<u64>()
             .context(".git/objects file header has invalid size: {size}")?;
 
-        // NOTE: this won't error if the decompressed file is too long, but will at least not
-        // spam stdout and be vulnerable to a zipbomb.
         let z = z.take(size);
+
         Ok(Object {
             kind,
             expected_size: size,
