@@ -4,7 +4,7 @@ use hex;
 use sha1::{Digest, Sha1};
 use std::{
     fs,
-    io::Write,
+    io::{self, Write},
     path::{Path, PathBuf},
 };
 
@@ -34,36 +34,52 @@ pub fn hash_object(file: PathBuf, write: bool) -> anyhow::Result<()> {
     where
         W: Write,
     {
-        let stat = std::fs::metadata(&file).with_context(|| format!("stat {}", file.display()))?;
+        // Get file information
+        let stat = fs::metadata(&file).with_context(|| format!("stat {}", file.display()))?;
+
+        // Create the writer for zlib encodcer
         let writer = ZlibEncoder::new(writer, Compression::default());
         let mut writer = HashWriter {
             writer,
             hasher: Sha1::new(),
         };
+
+        // Write header content
         write!(writer, "blob ")?;
         write!(writer, "{}\0", stat.len())?;
-        let mut file =
-            std::fs::File::open(&file).with_context(|| format!("open {}", file.display()))?;
-        std::io::copy(&mut file, &mut writer).context("stream file into blob")?;
+
+        // Zlib compress the content and write it in the writer
+        let mut file = fs::File::open(&file).with_context(|| format!("open {}", file.display()))?;
+        io::copy(&mut file, &mut writer).context("stream file into blob")?;
+
+        // finish the writer and close it
         let _ = writer.writer.finish()?;
         let hash = writer.hasher.finalize();
+
         Ok(hex::encode(hash))
     }
 
     let hash = if write {
+        // We create a temporary file
         let tmp = "temporary";
+        // Store the compressed data in temporary file
         let hash = write_blob(
             &file,
             std::fs::File::create(tmp).context("construct temporary file for blob")?,
         )
         .context("write out blob object")?;
+
+        // Create a folder for the file
         fs::create_dir_all(format!(".git/objects/{}/", &hash[..2]))
             .context("create subdir of .git/objects")?;
-        std::fs::rename(tmp, format!(".git/objects/{}/{}", &hash[..2], &hash[2..]))
+
+        // Rename the temporary file to the respective file and move it in respective folder
+        fs::rename(tmp, format!(".git/objects/{}/{}", &hash[..2], &hash[2..]))
             .context("move blob file into .git/objects")?;
+
         hash
     } else {
-        write_blob(&file, std::io::sink()).context("write out blob object")?
+        write_blob(&file, io::sink()).context("write out blob object")?
     };
 
     println!("{hash}");
