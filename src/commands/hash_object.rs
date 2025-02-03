@@ -29,7 +29,7 @@ where
     }
 }
 
-pub fn hash_object(file: PathBuf, write: bool) -> anyhow::Result<()> {
+pub(crate) fn invoke(file: PathBuf, write: bool) -> anyhow::Result<()> {
     fn write_blob<W>(file: &Path, writer: W) -> anyhow::Result<String>
     where
         W: Write,

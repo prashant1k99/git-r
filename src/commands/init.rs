@@ -1,6 +1,6 @@
 use std::fs;
 
-pub fn init() -> anyhow::Result<()> {
+pub(crate) fn invoke() -> anyhow::Result<()> {
     fs::create_dir(".git-r").unwrap();
     fs::create_dir(".git-r/objects").unwrap();
     fs::create_dir(".git-r/refs").unwrap();

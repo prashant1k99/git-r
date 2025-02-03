@@ -1,13 +1,9 @@
-mod cat_file;
-mod hash_object;
-mod init;
-
 use std::path::PathBuf;
 
-use cat_file::cat_file;
+pub(crate) mod commands;
+pub(crate) mod objects;
+
 use clap::{Parser, Subcommand};
-use hash_object::hash_object;
-use init::init;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -20,6 +16,9 @@ struct Args {
 enum Command {
     Init,
     CatFile {
+        #[clap(short = 'p')]
+        pretty_print: bool,
+
         object_hash: String,
     },
     HashObject {
@@ -34,8 +33,11 @@ fn main() -> anyhow::Result<()> {
     let args = Args::parse();
 
     match args.command {
-        Command::Init => init(),
-        Command::CatFile { object_hash } => cat_file(object_hash),
-        Command::HashObject { file_name, write } => hash_object(file_name, write),
+        Command::Init => commands::init::invoke(),
+        Command::CatFile {
+            object_hash,
+            pretty_print,
+        } => commands::cat_file::invoke(&object_hash, pretty_print),
+        Command::HashObject { file_name, write } => commands::hash_object::invoke(file_name, write),
     }
 }
