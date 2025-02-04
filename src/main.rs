@@ -1,5 +1,4 @@
 use std::path::PathBuf;
-
 pub(crate) mod commands;
 pub(crate) mod objects;
 
@@ -33,6 +32,7 @@ enum Command {
 
         tree_sha: String,
     },
+    WriteTree,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -49,5 +49,6 @@ fn main() -> anyhow::Result<()> {
             tree_sha,
             name_only,
         } => commands::ls_tree::invoke(&tree_sha, name_only),
+        Command::WriteTree => commands::write_tree::invoke(),
     }
 }
