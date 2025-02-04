@@ -18,10 +18,12 @@ pub(crate) fn handle_tree(name_only: bool, mut object: Object<impl BufRead>) -> 
             .reader
             .read_until(0, &mut buf)
             .context("read tree entry object hash")?;
+
         if n == 0 {
             // It's the file end
             break;
         }
+
         object
             .reader
             .read_exact(&mut hashbuf[..])

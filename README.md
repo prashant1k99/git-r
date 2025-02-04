@@ -24,3 +24,7 @@ git clone https://github.com/prashant1k99/git-r.git
 cd git-r
 cargo build --release
 ```
+
+## References:
+
+[Git Documentation](https://github.com/git/git/tree/master/Documentation)
